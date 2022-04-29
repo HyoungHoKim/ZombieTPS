@@ -42,13 +42,14 @@ public class PlayerMovement : MonoBehaviour
     {
         animator = GetComponent<Animator>();
         playerInput = GetComponent<PlayerInput>();
-        playyerShooter = GetComponent<PlayerShooter>();
+        playerShooter = GetComponent<PlayerShooter>();
         followCam = Camera.main;
         characterController = GetComponent<CharacterController>();
     }
 
     private void FixedUpdate()
     {
+        // 플레이어가 조금이라도 움직이거나 공격할 때 카메라와 플레이어의 방향을 일치시켜줌
         if (currentSpeed > 0.2f || playerInput.fire) Rotate();
 
         Move(playerInput.moveInput);
