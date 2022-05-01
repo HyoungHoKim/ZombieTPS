@@ -10,60 +10,66 @@ using UnityEditor;
 // 좀비 캐릭터의 생명체로서의 동작을 담당
 public class Enemy : LivingEntity
 {
+    // 좀비 상태
     private enum State
     {
-        Patrol,
-        Tracking,
-        AttackBegin,
-        Attacking
+        Patrol, // 돌아다니는 상태
+        Tracking, // 플레이어를 추격하는 상태
+        AttackBegin, // 공격 시작
+        Attacking // 공격 
     }
     
-    private State state;
+    private State state; // 좀비 상태 
     
     private NavMeshAgent agent; // 경로 계산 AI 에이전트
     private Animator animator; // 애니메이터 컴포넌트
 
-    public Transform attackRoot;
-    public Transform eyeTransform;
+    public Transform attackRoot; // 좀비 오브젝트가 공격하는 Pivot 포인트.
+    public Transform eyeTransform; // 시야의 기준점, 눈의 위치가 될 게임의 오브젝트의 Transform
     
     private AudioSource audioPlayer; // 오디오 소스 컴포넌트 
     public AudioClip hitClip; // 피격시 재생할 소리
     public AudioClip deathClip; // 사망시 재생할 소리 
     
-    private Renderer skinRenderer; // 렌더러 컴포넌트 
+    private Renderer skinRenderer; // 좀비 피부색 
 
-    public float runSpeed = 10f;
-    [Range(0.01f, 2f)] public float turnSmoothTime = 0.1f;
-    private float turnSmoothVelocity;
+    public float runSpeed = 10f; // 좀비 이동 속도
+    [Range(0.01f, 2f)] public float turnSmoothTime = 0.1f; // 좀비가 방향을 스무스하게 회전할 때 사용할 지연시간
+    private float turnSmoothVelocity; // 스무스하게 회전하는 실시간 변화량 
     
     public float damage = 30f;
-    public float attackRadius = 2f;
-    private float attackDistance;
+    public float attackRadius = 2f; // 공격 반경
+    private float attackDistance; // 공격을 시도하는 거리 
     
-    public float fieldOfView = 50f;
-    public float viewDistance = 10f;
-    public float patrolSpeed = 3f;
+    public float fieldOfView = 50f; // 좀비의 시야각
+    public float viewDistance = 10f; // 존비가 볼 수 있는 거리 
+    public float patrolSpeed = 3f; // 좀비가 돌아다니는 스피드 (Patrol 상태일 때)
     
     [HideInInspector] public LivingEntity targetEntity; // 추적할 대상 
     public LayerMask whatIsTarget; // 추적 대상 레이어 
 
-
+    // 좀비 공격을 범위 기반으로 구현, 여러개의 Ray충돌 지점이 생기기 때문
     private RaycastHit[] hits = new RaycastHit[10];
+    // 공격 도중에 직전 프레임까지 공격이 적용된 대상들을 모아둘 리스트(공격이 똑같은 대상에게 두번 이상 적용되지 않도록)
     private List<LivingEntity> lastAttackedTargets = new List<LivingEntity>();
     
+    // 추적할 대상이 존재하는지 여부
     private bool hasTarget => targetEntity != null && !targetEntity.dead;
     
 
 #if UNITY_EDITOR
 
+    // Zombie 오브젝트의 시야와 공격범위를 유니티 에디터 내에서만, 씬 상에서만 그리는 역할을 한다. 
     private void OnDrawGizmosSelected()
     {
+        // 좀비 공격 반경
         if (attackRoot != null)
         {
             Gizmos.color = new Color(1f, 0f, 0f, 0.5f);
             Gizmos.DrawSphere(attackRoot.position, attackRadius);
         }
 
+        // 좀비 시야 범위
         var leftRayRotation = Quaternion.AngleAxis(-fieldOfView * 0.5f, Vector3.up);
         var leftRayDirection = leftRayRotation * transform.forward;
         Handles.color = new Color(1f, 1f, 1f, 2.0f);
