@@ -16,50 +16,50 @@ public class Enemy : LivingEntity
         Patrol, // 돌아다니는 상태
         Tracking, // 플레이어를 추격하는 상태
         AttackBegin, // 공격 시작
-        Attacking // 공격 
+        Attacking // 공격
     }
-    
-    private State state; // 좀비 상태 
-    
+
+    private State state; // 좀비 상태
+
     private NavMeshAgent agent; // 경로 계산 AI 에이전트
     private Animator animator; // 애니메이터 컴포넌트
 
     public Transform attackRoot; // 좀비 오브젝트가 공격하는 Pivot 포인트.
     public Transform eyeTransform; // 시야의 기준점, 눈의 위치가 될 게임의 오브젝트의 Transform
-    
-    private AudioSource audioPlayer; // 오디오 소스 컴포넌트 
+
+    private AudioSource audioPlayer; // 오디오 소스 컴포넌트
     public AudioClip hitClip; // 피격시 재생할 소리
-    public AudioClip deathClip; // 사망시 재생할 소리 
-    
-    private Renderer skinRenderer; // 좀비 피부색 
+    public AudioClip deathClip; // 사망시 재생할 소리
+
+    private Renderer skinRenderer; // 좀비 피부색
 
     public float runSpeed = 10f; // 좀비 이동 속도
     [Range(0.01f, 2f)] public float turnSmoothTime = 0.1f; // 좀비가 방향을 스무스하게 회전할 때 사용할 지연시간
-    private float turnSmoothVelocity; // 스무스하게 회전하는 실시간 변화량 
-    
+    private float turnSmoothVelocity; // 스무스하게 회전하는 실시간 변화량
+
     public float damage = 30f;
     public float attackRadius = 2f; // 공격 반경
-    private float attackDistance; // 공격을 시도하는 거리 
-    
+    private float attackDistance; // 공격을 시도하는 거리
+
     public float fieldOfView = 50f; // 좀비의 시야각
-    public float viewDistance = 10f; // 존비가 볼 수 있는 거리 
+    public float viewDistance = 10f; // 존비가 볼 수 있는 거리
     public float patrolSpeed = 3f; // 좀비가 돌아다니는 스피드 (Patrol 상태일 때)
-    
-    [HideInInspector] public LivingEntity targetEntity; // 추적할 대상 
-    public LayerMask whatIsTarget; // 추적 대상 레이어 
+
+    [HideInInspector] public LivingEntity targetEntity; // 추적할 대상
+    public LayerMask whatIsTarget; // 추적 대상 레이어
 
     // 좀비 공격을 범위 기반으로 구현, 여러개의 Ray충돌 지점이 생기기 때문
     private RaycastHit[] hits = new RaycastHit[10];
     // 공격 도중에 직전 프레임까지 공격이 적용된 대상들을 모아둘 리스트(공격이 똑같은 대상에게 두번 이상 적용되지 않도록)
     private List<LivingEntity> lastAttackedTargets = new List<LivingEntity>();
-    
+
     // 추적할 대상이 존재하는지 여부
     private bool hasTarget => targetEntity != null && !targetEntity.dead;
-    
+
 
 #if UNITY_EDITOR
 
-    // Zombie 오브젝트의 시야와 공격범위를 유니티 에디터 내에서만, 씬 상에서만 그리는 역할을 한다. 
+    // Zombie 오브젝트의 시야와 공격범위를 유니티 에디터 내에서만, 씬 상에서만 그리는 역할을 한다.
     private void OnDrawGizmosSelected()
     {
         // 좀비 공격 반경
@@ -75,11 +75,12 @@ public class Enemy : LivingEntity
         Handles.color = new Color(1f, 1f, 1f, 2.0f);
         Handles.DrawSolidArc(eyeTransform.position, Vector3.up, leftRayDirection, fieldOfView, viewDistance);
     }
-    
+
 #endif
-    
+
     private void Awake()
     {
+        // 컴포넌트들 가져오기
         agent = GetComponent<NavMeshAgent>();
         animator = GetComponent<Animator>();
         audioPlayer = GetComponent<AudioSource>();
@@ -125,12 +126,12 @@ public class Enemy : LivingEntity
     {
         if (dead) return;
 
+        // 추적 대상과의 거리를 따져서 공격을 실행할지 검사
         if (state == State.Tracking &&
             Vector3.Distance(targetEntity.transform.position, transform.position) <= attackDistance)
         {
             BeginAttack();
         }
-
 
         // 추적 대상의 존재 여부에 따라 다른 애니메이션을 재생
         animator.SetFloat("Speed", agent.desiredVelocity.magnitude);
@@ -140,6 +141,7 @@ public class Enemy : LivingEntity
     {
         if (dead) return;
 
+        // 좀비가 공격대상을 바라보도록
         if (state == State.AttackBegin || state == State.Attacking)
         {
             var lookRotation =
@@ -150,7 +152,15 @@ public class Enemy : LivingEntity
                                         ref turnSmoothVelocity, turnSmoothTime);
         }
 
-        for (var i = 0; i < size; i++)
+        if (state == State.Attacking)
+        {
+            var direction = transform.forward;
+            var deltaDistance = agent.velocity.magnitude * Time.deltaTime;
+
+            var size = Physics.SphereCastNonAlloc(attackRoot.position, attackRadius, direction, hits, deltaDistance,
+                whatIsTarget);
+
+            for (var i = 0; i < size; i++)
             {
                 var attackTargetEntity = hits[i].collider.GetComponent<LivingEntity>();
 
@@ -183,7 +193,7 @@ public class Enemy : LivingEntity
     // 주기적으로 추적할 대상의 위치를 찾아 경로를 갱신
     private IEnumerator UpdatePath()
     {
-        // 살아있는 동안 무한 루프 
+        // 살아있는 동안 무한 루프
         while (!dead)
         {
             if (hasTarget)
@@ -201,12 +211,14 @@ public class Enemy : LivingEntity
             {
                 if (targetEntity != null) targetEntity = null;
 
+                // 정찰 상태가 아니였다면 이제 다시 정찰 상태로 변경
                 if (state != State.Patrol)
                 {
                     state = State.Patrol;
                     agent.speed = patrolSpeed;
                 }
 
+                // 일단 시야를 통해 감지하기 전에 NavMesh 위의 어떤 임의의 지점으로 이동하게 한다.
                 if (agent.remainingDistance <= 1f)
                 {
                     var patrolPosition = Utility.GetRandomPointOnNavMesh(transform.position, 20f, NavMesh.AllAreas);
@@ -235,15 +247,17 @@ public class Enemy : LivingEntity
                     }
                 }
             }
-            
+
             yield return new WaitForSeconds(0.05f);
         }
     }
-    
+
+    // 좀비가 총에 맞아서 데미지를 입었을 때 실행할 처리
     public override bool ApplyDamage(DamageMessage damageMessage)
     {
+        // 데미지 처리
         if (!base.ApplyDamage(damageMessage)) return false;
-        
+
         if (targetEntity == null)
         {
             targetEntity = damageMessage.damager.GetComponent<LivingEntity>();
@@ -255,6 +269,7 @@ public class Enemy : LivingEntity
         return true;
     }
 
+    // 명시적으로 공격을 시작할 때 사용 (공격 애니메이션이 시작되지만 데미지를 입히는 시점은 아님)
     public void BeginAttack()
     {
         state = State.AttackBegin;
@@ -263,10 +278,11 @@ public class Enemy : LivingEntity
         animator.SetTrigger("Attack");
     }
 
+    // 실제로 데미지가 들어가기 시작하는 지점
     public void EnableAttack()
     {
         state = State.Attacking;
-        
+
         lastAttackedTargets.Clear();
     }
 
@@ -280,7 +296,7 @@ public class Enemy : LivingEntity
         {
             state = State.Patrol;
         }
-        
+
         agent.isStopped = false;
     }
 
@@ -292,6 +308,7 @@ public class Enemy : LivingEntity
 
         direction.y = eyeTransform.forward.y;
 
+        // Ray가 시야각을 벗어나면 안됨
         if (Vector3.Angle(direction, eyeTransform.forward) > fieldOfView * 0.5f)
         {
             return false;
@@ -299,6 +316,7 @@ public class Enemy : LivingEntity
 
         direction = target.position - eyeTransform.position;
 
+        // 시야각 내에 존재 하더라도 광선이 장애물에 부딪히지 않고 목표에 잘 닿아야 함
         if (Physics.Raycast(eyeTransform.position, direction, out hit, viewDistance, whatIsTarget))
         {
             if (hit.transform == target) return true;
@@ -306,7 +324,8 @@ public class Enemy : LivingEntity
 
         return false;
     }
-    
+
+    // 사망 처리
     public override void Die()
     {
          // LivingEntity의 Die()를 실행하여 기본 사망 처리 실행

@@ -5,7 +5,7 @@ public class PlayerHealth : LivingEntity
 {
     private Animator animator;
     // 플레이어 소리 재생기
-    private AudioSource playerAudioPlayer; 
+    private AudioSource playerAudioPlayer;
 
     public AudioClip deathClip; // 사망 소리
     public AudioClip hitClip; // 피격 소리
@@ -13,7 +13,7 @@ public class PlayerHealth : LivingEntity
 
     private void Awake()
     {
-        // 사용할 컴포넌트를 가져오기 
+        // 사용할 컴포넌트를 가져오기
         playerAudioPlayer = GetComponent<AudioSource>();
         animator = GetComponent<Animator>();
     }
@@ -23,7 +23,7 @@ public class PlayerHealth : LivingEntity
         base.OnEnable();
         UpdateUI();
     }
-    
+
     // 체력회복
     public override void RestoreHealth(float newHealth)
     {
@@ -37,7 +37,7 @@ public class PlayerHealth : LivingEntity
     {
         UIManager.Instance.UpdateHealthText(dead ? 0f : health);
     }
-    
+
     // 데미지 처리
     public override bool ApplyDamage(DamageMessage damageMessage)
     {
@@ -50,14 +50,12 @@ public class PlayerHealth : LivingEntity
         // 갱신된 체력을 체력 슬라이더에 반영
         UpdateUI();
         return true;
-
-        return true;
     }
-    
+
     // 사망 처리
     public override void Die()
     {
-        // LivingEntity의 Die()실행 
+        // LivingEntity의 Die()실행
         base.Die();
 
         // 체력 슬라이더 비활성화

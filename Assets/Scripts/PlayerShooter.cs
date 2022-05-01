@@ -28,7 +28,7 @@ public class PlayerShooter : MonoBehaviour
     // y축의 각도 차이가 1도 이하면 true
     private bool linedUp => !(Mathf.Abs( playerCamera.transform.eulerAngles.y - transform.eulerAngles.y) > 1f);
     // Player Character가 정면에 총을 발사할 수 있을 정도 넉넉한 공간을 확보하고 있는지를 리턴하는 프로퍼티 -> 벽에 붙는 경우 발사가 안되게
-    private bool hasEnoughDistance => !Physics.Linecast(transform.position + Vector3.up * gun.fireTransform.position.y,gun.fireTransform.position, ~excludeTarget);
+    private bool hasEnoughDistance => !Physics.Linecast(transform.position + Vector3.up * gun.fireTransform.position.y, gun.fireTransform.position, ~excludeTarget);
 
     // excludeTarget에 Player Character의 레이어가 포함되어 있지 않다면 Player Character의 레이어를 excludeTarget에 추가하는 연산을 수행
     void Awake()
@@ -158,7 +158,7 @@ public class PlayerShooter : MonoBehaviour
 
         // IK를 사용하여 왼손의 위치와 회전을 총의 오른쪽 손잡이에 맞춘다.
         playerAnimator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 1.0f);
-        playerAnimator.SetIKPositionWeight(AvatarIKGoal.LeftHand, 1.0f);
+        playerAnimator.SetIKRotationWeight(AvatarIKGoal.LeftHand, 1.0f);
 
         playerAnimator.SetIKPosition(AvatarIKGoal.LeftHand, gun.leftHandMount.position);
         playerAnimator.SetIKRotation(AvatarIKGoal.LeftHand, gun.leftHandMount.rotation);
