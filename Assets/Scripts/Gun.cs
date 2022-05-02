@@ -118,7 +118,7 @@ public class Gun : MonoBehaviour
         var hitPosition = Vector3.zero;
 
         // 레이캐스트(시작지점, 방향, 충돌 정보 컨테이너, 사정거리)
-        if (Physics.Raycast(startPoint, direction, out hit, fireDistance, -excludeTarget))
+        if (Physics.Raycast(startPoint, direction, out hit, fireDistance, ~excludeTarget))
         {
             // 레이가 어떤 물체와 충돌한 경우
             // 충돌한 상대방으로부터 IDamageable 오브젝트를 가져오기 시도
